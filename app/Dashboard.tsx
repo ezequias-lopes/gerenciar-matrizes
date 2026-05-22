@@ -74,7 +74,7 @@ export default function App() {
           }
         );
 
-        setUsuarios(usuariosPadrao);
+        setUsuarios(ordenarUsuariosAlfabeticamente(usuariosPadrao));
         setPosicoes(posicoesPadrao);
 
       } catch (err) {
@@ -154,6 +154,14 @@ export default function App() {
       }
     });
   };
+
+const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
+  return [...lista].sort((a, b) =>
+    a.nome.localeCompare(b.nome, 'pt-BR', {
+      sensitivity: 'base'
+    })
+  );
+};
 
   // --- REGRAS DE NEGÓCIO E DETECÇÃO DE CONFLITO EM TEMPO REAL ---
 
