@@ -577,7 +577,7 @@ export default function App() {
                                       : 'border-slate-200 text-slate-500 hover:border-slate-300'
                                   }`}
                                 >
-                                  <option value="livre">— livre —</option>
+                                  <option value="livre">VAZIO</option>
                                   {usuarios.map(u => (
                                     <option key={u.id} value={u.id}>{u.nome}</option>
                                   ))}
