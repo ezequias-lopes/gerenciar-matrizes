@@ -1,0 +1,27 @@
+// Este é o ficheiro de configuração do esquema do Prisma para o MongoDB.
+// Saiba mais na documentação oficial: https://pris.ly/d/prisma-schema
+
+
+datasource db {
+  provider = "mongodb"
+  url = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// Modelo que representa os utilizadores do sistema
+model Usuario {
+  id       String    @id @default(auto()) @map("_id") @db.ObjectId
+  nome     String    @unique
+  posicoes Posicao[] // Relação de um-para-muitos: um utilizador pode ter várias posições atribuídas
+}
+
+// Modelo que representa cada uma das 65 posições da matriz (0 a 64)
+model Posicao {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  numero    Int      @unique // Garante que cada número de posição (0 a 64) é único
+  usuarioId String?  @db.ObjectId // Armazena o ID do utilizador (pode ser nulo caso a posição esteja livre)
+  usuario   Usuario? @relation(fields: [usuarioId], references: [id], onDelete: SetNull) // Quando o utilizador é removido, a posição fica livre (SetNull)
+}
