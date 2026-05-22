@@ -31,7 +31,7 @@ export async function obterDadosIniciais() {
     }));
 
     // Garante que todas as 65 posições (0 a 64) estejam representadas
-    const posicoesMap = new Map(posicoesDb.map((p: { numero: string, usuarioId: string }) => [p.numero, p.usuarioId]));
+    const posicoesMap = new Map(posicoesDb.map((p: { numero: number, usuarioId: string | null }) => [p.numero, p.usuarioId]));
     const posicoes: PosicaoMatriz[] = [];
 
     for (let i = 0; i <= 64; i++) {
