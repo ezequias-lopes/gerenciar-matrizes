@@ -11,7 +11,8 @@ import {
   ChevronDown,
   ChevronUp,
   RefreshCw,
-  Database
+  Database,
+  Filter
 } from 'lucide-react';
 import { adicionarUsuarioAction, atualizarPosicaoAction, obterDadosIniciais, removerUsuarioAction } from '@/lib/actions';
 
@@ -67,6 +68,8 @@ export default function App() {
   const [posicoes, setPosicoes] = useState<PosicaoMatriz[]>([]);
   const [novoUsuarioNome, setNovoUsuarioNome] = useState('');
   const [mensagemFeedback, setMensagemFeedback] = useState<{ texto: string; tipo: 'sucesso' | 'erro' | 'info' } | null>(null);
+
+  const [filtroUsuario, setFiltroUsuario] = useState<string>('todos');
 
   // Helper de feedback temporário
   const mostrarFeedback = (texto: string, tipo: 'sucesso' | 'erro' | 'info') => {
@@ -222,9 +225,22 @@ export default function App() {
   const totalConflitos = Array.from(usuariosEmConflito).length;
   const temAlgumConflito = totalConflitos > 0;
 
+ const posicoesFiltradas = useMemo(() => {
+    return posicoes.filter(pos => {
+      if (filtroUsuario === 'todos') {
+        return true;
+      }
+      if (filtroUsuario === 'livres') {
+        return pos.usuarioId === null;
+      }
+      // Filtra pelo id específico do usuário
+      return pos.usuarioId === filtroUsuario;
+    });
+  }, [posicoes, filtroUsuario]);
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased pb-12">
-
+      
       {/* Cabeçalho Simplificado (Apenas o Título) */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -238,10 +254,10 @@ export default function App() {
               </h1>
             </div>
           </div>
-
+          
           {/* Indicador visual de carregamento de Server Action */}
           {isPending && (
-            <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-xs text-blue-600 font-medium">
+            <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-xs text-blue-600 font-medium animate-pulse">
               <RefreshCw className="w-3 h-3 animate-spin text-blue-500" />
               <span>Sincronizando Banco...</span>
             </div>
@@ -252,10 +268,11 @@ export default function App() {
       {/* Mensagem Flutuante de Sucesso / Erro */}
       {mensagemFeedback && (
         <div className="fixed bottom-5 right-5 z-50 transition-all duration-300">
-          <div className={`px-4 py-3 rounded-xl shadow-lg border flex items-center gap-2 text-sm font-medium ${mensagemFeedback.tipo === 'sucesso' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-              mensagemFeedback.tipo === 'erro' ? 'bg-rose-50 border-rose-200 text-rose-800' :
-                'bg-sky-50 border-sky-200 text-sky-800'
-            }`}>
+          <div className={`px-4 py-3 rounded-xl shadow-lg border flex items-center gap-2 text-sm font-medium ${
+            mensagemFeedback.tipo === 'sucesso' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+            mensagemFeedback.tipo === 'erro' ? 'bg-rose-50 border-rose-200 text-rose-800' :
+            'bg-sky-50 border-sky-200 text-sky-800'
+          }`}>
             {mensagemFeedback.tipo === 'sucesso' && <CheckCircle className="w-5 h-5 text-emerald-600" />}
             {mensagemFeedback.tipo === 'erro' && <AlertTriangle className="w-5 h-5 text-rose-600" />}
             <span>{mensagemFeedback.texto}</span>
@@ -266,13 +283,13 @@ export default function App() {
       {/* Conteúdo Principal */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
+          
           {/* COLUNA ESQUERDA: LISTA DE USUÁRIOS (FECHADA POR PADRÃO) */}
           <div className="lg:col-span-4 space-y-4">
-
+            
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
               {/* Cabeçalho do Card Expansível */}
-              <button
+              <button 
                 onClick={() => setUsuariosExpandido(!usuariosExpandido)}
                 className="w-full flex justify-between items-center focus:outline-hidden group"
               >
@@ -301,8 +318,8 @@ export default function App() {
 
               {/* Corpo Expansível */}
               {usuariosExpandido && (
-                <div className="mt-5 pt-4 border-t border-slate-100 space-y-4">
-
+                <div className="mt-5 pt-4 border-t border-slate-100 space-y-4 animate-fadeIn">
+                  
                   {/* Formulário de Adicionar */}
                   <form onSubmit={handleAdicionarUsuario} className="flex gap-2">
                     <input
@@ -337,26 +354,29 @@ export default function App() {
                         return (
                           <div
                             key={user.id}
-                            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${emConflito
+                            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
+                              emConflito
                                 ? 'bg-rose-50/70 border-rose-100 text-rose-900'
                                 : 'bg-slate-50/70 border-slate-100 text-slate-800'
-                              }`}
+                            }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${emConflito ? 'bg-rose-500 text-white' : 'bg-blue-600 text-white'
-                                }`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
+                                emConflito ? 'bg-rose-500 text-white' : 'bg-blue-600 text-white'
+                              }`}>
                                 {user.nome.charAt(0).toUpperCase()}
                               </div>
                               <span className="font-semibold text-sm truncate">{user.nome}</span>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${emConflito
+                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
+                                emConflito
                                   ? 'bg-rose-100 text-rose-700'
                                   : totalPosicoesUser > 0
-                                    ? 'bg-blue-50 text-blue-600'
-                                    : 'bg-slate-200/60 text-slate-500'
-                                }`}>
+                                  ? 'bg-blue-50 text-blue-600'
+                                  : 'bg-slate-200/60 text-slate-500'
+                              }`}>
                                 {totalPosicoesUser} {totalPosicoesUser === 1 ? 'pos' : 'pos'}
                               </span>
                               <button
@@ -388,9 +408,9 @@ export default function App() {
           {/* COLUNA DIREITA: TABELA DE MATRIZES */}
           <div className="lg:col-span-8">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-
+              
               {/* Cabeçalho da Tabela */}
-              <div className="p-5 border-b border-slate-100">
+              <div className="p-5 border-b border-slate-100 space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                   <div>
                     <h2 className="text-base font-bold text-slate-900">Tabela de Matrizes</h2>
@@ -398,7 +418,7 @@ export default function App() {
                   </div>
 
                   {/* Badges de Contagem de Atribuições */}
-                  <div className="grid grid-cols-3 gap-2 border border-slate-100 rounded-xl p-1 bg-slate-50/50 text-center max-w-sm">
+                  <div className="grid grid-cols-3 gap-2 border border-slate-100 rounded-xl p-1 bg-slate-50/50 text-center max-w-sm shrink-0">
                     <div className="px-3 py-1.5">
                       <div className="text-base font-bold text-slate-900">{totalAtribuidas}</div>
                       <div className="text-[9px] font-bold text-slate-400 uppercase tracking-wide">Atribuídas</div>
@@ -415,11 +435,80 @@ export default function App() {
                     </div>
                   </div>
                 </div>
+
+                {/* FILTRO DE PESQUISA */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-3 border-t border-slate-100">
+                  <div className="flex items-center gap-2 text-xs font-bold text-slate-500 uppercase tracking-wider shrink-0">
+                    <Filter className="w-4 h-4 text-slate-400" />
+                    <span>Filtrar tabela:</span>
+                  </div>
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {/* Botão para Todos */}
+                    <button
+                      onClick={() => setFiltroUsuario('todos')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        filtroUsuario === 'todos'
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      Todos ({posicoes.length})
+                    </button>
+
+                    {/* Botão para Livres */}
+                    <button
+                      onClick={() => setFiltroUsuario('livres')}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
+                        filtroUsuario === 'livres'
+                          ? 'bg-slate-700 border-slate-700 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                      }`}
+                    >
+                      Livres ({totalLivres})
+                    </button>
+
+                    {/* Dropdown de Filtragem por Usuário Específico */}
+                    <div className="relative">
+                      <select
+                        value={['todos', 'livres'].includes(filtroUsuario) ? 'selecionar' : filtroUsuario}
+                        onChange={(e) => {
+                          if (e.target.value !== 'selecionar') {
+                            setFiltroUsuario(e.target.value);
+                          }
+                        }}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                          !['todos', 'livres'].includes(filtroUsuario)
+                            ? 'border-blue-600 text-blue-700 font-bold'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
+                      >
+                        <option value="selecionar" disabled>Filtrar por Usuário...</option>
+                        {usuarios.map(u => (
+                          <option key={u.id} value={u.id}>
+                            {u.nome} ({contagemPorUsuario[u.id] || 0})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Botão para limpar filtro rápido quando um usuário está selecionado */}
+                    {!['todos', 'livres'].includes(filtroUsuario) && (
+                      <button
+                        onClick={() => setFiltroUsuario('todos')}
+                        className="p-1.5 text-xs rounded-lg hover:bg-slate-100 text-rose-500 font-semibold flex items-center gap-1 transition-colors"
+                        title="Limpar filtro de usuário"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        Limpar
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
 
               {/* Banner de Aviso de Conflito */}
               {temAlgumConflito && (
-                <div className="bg-amber-50 border-b border-amber-200/60 p-4 flex items-start gap-3 animate-fadeIn">
+                <div className="bg-amber-50 border-b border-amber-200/60 p-4 flex items-start gap-3">
                   <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                   <div className="text-xs font-semibold text-amber-900">
                     <p>{totalConflitos} {totalConflitos === 1 ? 'usuário está atribuído' : 'usuários estão atribuídos'} a mais de uma posição.</p>
@@ -430,7 +519,7 @@ export default function App() {
 
               {/* Tabela Interativa de Posições */}
               <div className="overflow-x-auto">
-                <div className="max-h-[550px] overflow-y-auto">
+                <div className="max-h-[500px] overflow-y-auto">
                   <table className="w-full text-left border-collapse">
                     <thead>
                       <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider sticky top-0 z-10">
@@ -440,76 +529,91 @@ export default function App() {
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
-                      {posicoes.map((pos) => {
-                        const estaLivre = pos.usuarioId === null;
-                        const emConflito = !estaLivre && usuariosEmConflito.has(pos.usuarioId!);
-                        const estaAtribuidaUnica = !estaLivre && !emConflito;
+                      {posicoesFiltradas.length === 0 ? (
+                        <tr>
+                          <td colSpan={3} className="py-12 text-center text-slate-400 text-sm font-medium">
+                            Nenhuma posição corresponde ao filtro selecionado.
+                          </td>
+                        </tr>
+                      ) : (
+                        posicoesFiltradas.map((pos) => {
+                          const estaLivre = pos.usuarioId === null;
+                          const emConflito = !estaLivre && usuariosEmConflito.has(pos.usuarioId!);
+                          const estaAtribuidaUnica = !estaLivre && !emConflito;
 
-                        let corLinha = 'hover:bg-slate-50/80';
-                        if (emConflito) {
-                          corLinha = 'bg-rose-50/60 hover:bg-rose-50 text-rose-900';
-                        } else if (estaAtribuidaUnica) {
-                          corLinha = 'bg-emerald-50/50 hover:bg-emerald-50 text-slate-800';
-                        }
+                          let corLinha = 'hover:bg-slate-50/80';
+                          if (emConflito) {
+                            corLinha = 'bg-rose-50/60 hover:bg-rose-50 text-rose-900';
+                          } else if (estaAtribuidaUnica) {
+                            corLinha = 'bg-emerald-50/50 hover:bg-emerald-50 text-slate-800';
+                          }
 
-                        return (
-                          <tr
-                            key={pos.numero}
-                            className={`transition-colors text-sm ${corLinha}`}
-                          >
-                            {/* Posição */}
-                            <td className="py-3.5 px-6 font-semibold">
-                              <span className={`inline-flex items-center gap-1 ${emConflito ? 'text-rose-700' : estaAtribuidaUnica ? 'text-emerald-700' : 'text-slate-600'
+                          return (
+                            <tr 
+                              key={pos.numero} 
+                              className={`transition-colors text-sm ${corLinha}`}
+                            >
+                              {/* Posição */}
+                              <td className="py-3.5 px-6 font-semibold">
+                                <span className={`inline-flex items-center gap-1 ${
+                                  emConflito ? 'text-rose-700' : estaAtribuidaUnica ? 'text-emerald-700' : 'text-slate-600'
                                 }`}>
-                                <Hash className="w-3.5 h-3.5 opacity-60" />
-                                {pos.numero}
-                              </span>
-                            </td>
+                                  <Hash className="w-3.5 h-3.5 opacity-60" />
+                                  {pos.numero}
+                                </span>
+                              </td>
 
-                            {/* Seletor */}
-                            <td className="py-3.5 px-6">
-                              <select
-                                value={pos.usuarioId || 'livre'}
-                                disabled={isPending}
-                                onChange={(e) => handleAlterarPosicao(pos.numero, e.target.value)}
-                                className={`w-full max-w-xs bg-white border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${emConflito
-                                    ? 'border-rose-300 text-rose-800 focus:border-rose-500'
-                                    : estaAtribuidaUnica
+                              {/* Seletor */}
+                              <td className="py-3.5 px-6">
+                                <select
+                                  value={pos.usuarioId || 'livre'}
+                                  disabled={isPending}
+                                  onChange={(e) => handleAlterarPosicao(pos.numero, e.target.value)}
+                                  className={`w-full max-w-xs bg-white border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${
+                                    emConflito 
+                                      ? 'border-rose-300 text-rose-800 focus:border-rose-500' 
+                                      : estaAtribuidaUnica
                                       ? 'border-emerald-200 text-emerald-800 focus:border-emerald-500'
                                       : 'border-slate-200 text-slate-500 hover:border-slate-300'
                                   }`}
-                              >
-                                <option value="livre">VAZIO</option>
-                                {usuarios.map(u => (
-                                  <option key={u.id} value={u.id}>{u.nome}</option>
-                                ))}
-                              </select>
-                            </td>
+                                >
+                                  <option value="livre">— livre —</option>
+                                  {usuarios.map(u => (
+                                    <option key={u.id} value={u.id}>{u.nome}</option>
+                                  ))}
+                                </select>
+                              </td>
 
-                            {/* Status */}
-                            <td className="py-3.5 px-6">
-                              {estaLivre && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200/50">
-                                  Livre
-                                </span>
-                              )}
-                              {estaAtribuidaUnica && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200/50">
-                                  OK
-                                </span>
-                              )}
-                              {emConflito && (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200/50 animate-pulse">
-                                  Conflito
-                                </span>
-                              )}
-                            </td>
-                          </tr>
-                        );
-                      })}
+                              {/* Status */}
+                              <td className="py-3.5 px-6">
+                                {estaLivre && (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-100 text-slate-500 border border-slate-200/50">
+                                    Livre
+                                  </span>
+                                )}
+                                {estaAtribuidaUnica && (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200/50">
+                                    OK
+                                  </span>
+                                )}
+                                {emConflito && (
+                                  <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-100 text-rose-800 border border-rose-200/50 animate-pulse">
+                                    Conflito
+                                  </span>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
                     </tbody>
                   </table>
                 </div>
+              </div>
+
+              {/* Rodapé da tabela */}
+              <div className="bg-slate-50 px-6 py-3 border-t border-slate-200 text-center text-xs text-slate-400 font-medium">
+                Mostrando {posicoesFiltradas.length} de {posicoes.length} posições.
               </div>
 
             </div>
