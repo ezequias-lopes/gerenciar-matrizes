@@ -30,32 +30,6 @@ interface PosicaoMatriz {
   usuarioId: string | null;
 }
 
-// =========================================================================
-// NOTA IMPORTANTE PARA NEXT.JS REAL:
-// Em um projeto real, as Server Actions abaixo devem ser importadas de outro
-// arquivo configurado com "use server" (ex: import { ... } from "./actions")
-// =========================================================================
-
-// Simulação de chamadas ao banco MongoDB (Substituir pelos imports das suas actions reais)
-const mockAdicionarUsuarioAction = async (nome: string): Promise<Usuario> => {
-  await new Promise((resolve) => setTimeout(resolve, 600)); // Simula latência do banco
-  return { id: crypto.randomUUID(), nome };
-};
-
-const mockRemoverUsuarioAction = async (id: string): Promise<boolean> => {
-  await new Promise((resolve) => setTimeout(resolve, 600));
-  return true;
-};
-
-const mockAtualizarPosicaoAction = async (numero: number, usuarioId: string | null): Promise<boolean> => {
-  await new Promise((resolve) => setTimeout(resolve, 400));
-  return true;
-};
-
-// ==================================================
-// COMPONENTE PRINCIPAL (CLIENT COMPONENT - "use client")
-// ==================================================
-
 export default function App() {
   // Estado para controlar se a lista de usuários está aberta (fechada por padrão)
   const [usuariosExpandido, setUsuariosExpandido] = useState(false);
@@ -77,52 +51,40 @@ export default function App() {
     setTimeout(() => setMensagemFeedback(null), 4000);
   };
 
-  // Carrega estado inicial do LocalStorage caso o banco real ainda não tenha dados persistidos
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const localUsers = localStorage.getItem('canvas_usuarios');
-      const localPosicoes = localStorage.getItem('canvas_posicoes');
+    startTransition(async () => {
+      try {
+        const db = await obterDadosIniciais();
 
-      if (localUsers && localPosicoes) {
-        setUsuarios(JSON.parse(localUsers));
-        setPosicoes(JSON.parse(localPosicoes));
-      } else {
-        startTransition(async () => {
-          try {
-            // Aqui você chamará a Server Action real importada:
-            // Inicialização padrão idêntica à imagem original
-            const usuariosPadrao = (await obterDadosIniciais())?.usuarios || [
-              { id: '1', nome: 'Dados Não Carregados' },
-            ];
+        console.log(db);
 
-            const posicoesPadrao: PosicaoMatriz[] = [];
-            for (let i = 0; i <= 64; i++) {
-              let usuarioId: string | null = null;
-              if (i === 2 || i === 4) usuarioId = '1';
-              else if (i === 6) usuarioId = '2';
-              posicoesPadrao.push({ numero: i, usuarioId });
-            }
+        const usuariosPadrao = db.usuarios || [
+          { id: '1', nome: 'Dados Não Carregados' },
+        ];
 
-            setUsuarios(usuariosPadrao);
-            setPosicoes(posicoesPadrao);
-            localStorage.setItem('canvas_usuarios', JSON.stringify(usuariosPadrao));
-            localStorage.setItem('canvas_posicoes', JSON.stringify(posicoesPadrao));
-
-          } catch (err) {
-            mostrarFeedback('Falha ao salvar o usuário no banco de dados.', 'erro');
+        const posicoesPadrao: PosicaoMatriz[] = Array.from(
+          { length: 65 },
+          (_, i) => {
+            return (
+              db.posicoes.find(p => p.numero === i) || {
+                numero: i,
+                usuarioId: null
+              }
+            );
           }
-        });
+        );
+
+        setUsuarios(usuariosPadrao);
+        setPosicoes(posicoesPadrao);
+
+      } catch (err) {
+        mostrarFeedback('Falha ao salvar o usuário no banco de dados.', 'erro');
       }
-    }
+    });
   }, []);
 
   // Persistência local utilitária para manter dados ao atualizar a página do preview
-  const salvarEmCacheLocal = (novosUsers: Usuario[], novasPosicoes: PosicaoMatriz[]) => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('canvas_usuarios', JSON.stringify(novosUsers));
-      localStorage.setItem('canvas_posicoes', JSON.stringify(novasPosicoes));
-    }
-  };
+
 
   // 1. Adicionar Usuário (Chama a Server Action no Servidor)
   const handleAdicionarUsuario = (e: React.FormEvent) => {
@@ -143,11 +105,9 @@ export default function App() {
       try {
         // Aqui você chamará a Server Action real importada:
         const novoUser = await adicionarUsuarioAction(nomeLimpo);
-        // const novoUser = await mockAdicionarUsuarioAction(nomeLimpo);
-
         const novosUsuarios = [...usuarios, novoUser];
+
         setUsuarios(novosUsuarios);
-        salvarEmCacheLocal(novosUsuarios, posicoes);
         setNovoUsuarioNome('');
         mostrarFeedback(`Usuário "${nomeLimpo}" adicionado e salvo com sucesso!`, 'sucesso');
       } catch (err) {
@@ -161,14 +121,12 @@ export default function App() {
     startTransition(async () => {
       try {
         await removerUsuarioAction(id);
-        await mockRemoverUsuarioAction(id);
 
         const novosUsuarios = usuarios.filter(u => u.id !== id);
         const novasPosicoes = posicoes.map(p => p.usuarioId === id ? { ...p, usuarioId: null } : p);
 
         setUsuarios(novosUsuarios);
         setPosicoes(novasPosicoes);
-        salvarEmCacheLocal(novosUsuarios, novasPosicoes);
 
         mostrarFeedback(`Usuário "${nome}" removido do banco.`, 'info');
       } catch (err) {
@@ -184,14 +142,12 @@ export default function App() {
     startTransition(async () => {
       try {
         await atualizarPosicaoAction(numeroPosicao, destinoId);
-        await mockAtualizarPosicaoAction(numeroPosicao, destinoId);
 
         const novasPosicoes = posicoes.map(p =>
           p.numero === numeroPosicao ? { ...p, usuarioId: destinoId } : p
         );
 
         setPosicoes(novasPosicoes);
-        salvarEmCacheLocal(usuarios, novasPosicoes);
         mostrarFeedback(`Posição ${numeroPosicao} atualizada no banco.`, 'sucesso');
       } catch (err) {
         mostrarFeedback('Erro ao atualizar posição no banco de dados.', 'erro');
@@ -225,7 +181,7 @@ export default function App() {
   const totalConflitos = Array.from(usuariosEmConflito).length;
   const temAlgumConflito = totalConflitos > 0;
 
- const posicoesFiltradas = useMemo(() => {
+  const posicoesFiltradas = useMemo(() => {
     return posicoes.filter(pos => {
       if (filtroUsuario === 'todos') {
         return true;
@@ -240,7 +196,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased pb-12">
-      
+
       {/* Cabeçalho Simplificado (Apenas o Título) */}
       <header className="bg-white border-b border-slate-200 px-6 py-4 sticky top-0 z-10 shadow-xs">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -254,7 +210,7 @@ export default function App() {
               </h1>
             </div>
           </div>
-          
+
           {/* Indicador visual de carregamento de Server Action */}
           {isPending && (
             <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 border border-blue-100 rounded-full text-xs text-blue-600 font-medium animate-pulse">
@@ -268,11 +224,10 @@ export default function App() {
       {/* Mensagem Flutuante de Sucesso / Erro */}
       {mensagemFeedback && (
         <div className="fixed bottom-5 right-5 z-50 transition-all duration-300">
-          <div className={`px-4 py-3 rounded-xl shadow-lg border flex items-center gap-2 text-sm font-medium ${
-            mensagemFeedback.tipo === 'sucesso' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+          <div className={`px-4 py-3 rounded-xl shadow-lg border flex items-center gap-2 text-sm font-medium ${mensagemFeedback.tipo === 'sucesso' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
             mensagemFeedback.tipo === 'erro' ? 'bg-rose-50 border-rose-200 text-rose-800' :
-            'bg-sky-50 border-sky-200 text-sky-800'
-          }`}>
+              'bg-sky-50 border-sky-200 text-sky-800'
+            }`}>
             {mensagemFeedback.tipo === 'sucesso' && <CheckCircle className="w-5 h-5 text-emerald-600" />}
             {mensagemFeedback.tipo === 'erro' && <AlertTriangle className="w-5 h-5 text-rose-600" />}
             <span>{mensagemFeedback.texto}</span>
@@ -283,13 +238,13 @@ export default function App() {
       {/* Conteúdo Principal */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          
+
           {/* COLUNA ESQUERDA: LISTA DE USUÁRIOS (FECHADA POR PADRÃO) */}
           <div className="lg:col-span-4 space-y-4">
-            
+
             <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
               {/* Cabeçalho do Card Expansível */}
-              <button 
+              <button
                 onClick={() => setUsuariosExpandido(!usuariosExpandido)}
                 className="w-full flex justify-between items-center focus:outline-hidden group"
               >
@@ -319,7 +274,7 @@ export default function App() {
               {/* Corpo Expansível */}
               {usuariosExpandido && (
                 <div className="mt-5 pt-4 border-t border-slate-100 space-y-4 animate-fadeIn">
-                  
+
                   {/* Formulário de Adicionar */}
                   <form onSubmit={handleAdicionarUsuario} className="flex gap-2">
                     <input
@@ -354,29 +309,26 @@ export default function App() {
                         return (
                           <div
                             key={user.id}
-                            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${
-                              emConflito
-                                ? 'bg-rose-50/70 border-rose-100 text-rose-900'
-                                : 'bg-slate-50/70 border-slate-100 text-slate-800'
-                            }`}
+                            className={`flex items-center justify-between p-3 rounded-xl border transition-all ${emConflito
+                              ? 'bg-rose-50/70 border-rose-100 text-rose-900'
+                              : 'bg-slate-50/70 border-slate-100 text-slate-800'
+                              }`}
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
-                                emConflito ? 'bg-rose-500 text-white' : 'bg-blue-600 text-white'
-                              }`}>
+                              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${emConflito ? 'bg-rose-500 text-white' : 'bg-blue-600 text-white'
+                                }`}>
                                 {user.nome.charAt(0).toUpperCase()}
                               </div>
                               <span className="font-semibold text-sm truncate">{user.nome}</span>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${
-                                emConflito
-                                  ? 'bg-rose-100 text-rose-700'
-                                  : totalPosicoesUser > 0
+                              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${emConflito
+                                ? 'bg-rose-100 text-rose-700'
+                                : totalPosicoesUser > 0
                                   ? 'bg-blue-50 text-blue-600'
                                   : 'bg-slate-200/60 text-slate-500'
-                              }`}>
+                                }`}>
                                 {totalPosicoesUser} {totalPosicoesUser === 1 ? 'pos' : 'pos'}
                               </span>
                               <button
@@ -408,7 +360,7 @@ export default function App() {
           {/* COLUNA DIREITA: TABELA DE MATRIZES */}
           <div className="lg:col-span-8">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-              
+
               {/* Cabeçalho da Tabela */}
               <div className="p-5 border-b border-slate-100 space-y-4">
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
@@ -446,11 +398,10 @@ export default function App() {
                     {/* Botão para Todos */}
                     <button
                       onClick={() => setFiltroUsuario('todos')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                        filtroUsuario === 'todos'
-                          ? 'bg-blue-600 border-blue-600 text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'todos'
+                        ? 'bg-blue-600 border-blue-600 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
                     >
                       Todos ({posicoes.length})
                     </button>
@@ -458,11 +409,10 @@ export default function App() {
                     {/* Botão para Livres */}
                     <button
                       onClick={() => setFiltroUsuario('livres')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${
-                        filtroUsuario === 'livres'
-                          ? 'bg-slate-700 border-slate-700 text-white'
-                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                      }`}
+                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'livres'
+                        ? 'bg-slate-700 border-slate-700 text-white'
+                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                        }`}
                     >
                       Livres ({totalLivres})
                     </button>
@@ -476,11 +426,10 @@ export default function App() {
                             setFiltroUsuario(e.target.value);
                           }
                         }}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${
-                          !['todos', 'livres'].includes(filtroUsuario)
-                            ? 'border-blue-600 text-blue-700 font-bold'
-                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${!['todos', 'livres'].includes(filtroUsuario)
+                          ? 'border-blue-600 text-blue-700 font-bold'
+                          : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                          }`}
                       >
                         <option value="selecionar" disabled>Filtrar por Usuário...</option>
                         {usuarios.map(u => (
@@ -505,18 +454,6 @@ export default function App() {
                   </div>
                 </div>
               </div>
-
-              {/* Banner de Aviso de Conflito */}
-              {temAlgumConflito && (
-                <div className="bg-amber-50 border-b border-amber-200/60 p-4 flex items-start gap-3">
-                  <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                  <div className="text-xs font-semibold text-amber-900">
-                    <p>{totalConflitos} {totalConflitos === 1 ? 'usuário está atribuído' : 'usuários estão atribuídos'} a mais de uma posição.</p>
-                    <p className="text-amber-700/95 font-medium mt-0.5">Linhas em vermelho indicam conflito de duplicidade.</p>
-                  </div>
-                </div>
-              )}
-
               {/* Tabela Interativa de Posições */}
               <div className="overflow-x-auto">
                 <div className="max-h-[500px] overflow-y-auto">
@@ -549,15 +486,14 @@ export default function App() {
                           }
 
                           return (
-                            <tr 
-                              key={pos.numero} 
+                            <tr
+                              key={pos.numero}
                               className={`transition-colors text-sm ${corLinha}`}
                             >
                               {/* Posição */}
                               <td className="py-3.5 px-6 font-semibold">
-                                <span className={`inline-flex items-center gap-1 ${
-                                  emConflito ? 'text-rose-700' : estaAtribuidaUnica ? 'text-emerald-700' : 'text-slate-600'
-                                }`}>
+                                <span className={`inline-flex items-center gap-1 ${emConflito ? 'text-rose-700' : estaAtribuidaUnica ? 'text-emerald-700' : 'text-slate-600'
+                                  }`}>
                                   <Hash className="w-3.5 h-3.5 opacity-60" />
                                   {pos.numero}
                                 </span>
@@ -569,13 +505,12 @@ export default function App() {
                                   value={pos.usuarioId || 'livre'}
                                   disabled={isPending}
                                   onChange={(e) => handleAlterarPosicao(pos.numero, e.target.value)}
-                                  className={`w-full max-w-xs bg-white border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${
-                                    emConflito 
-                                      ? 'border-rose-300 text-rose-800 focus:border-rose-500' 
-                                      : estaAtribuidaUnica
+                                  className={`w-full max-w-xs bg-white border rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${emConflito
+                                    ? 'border-rose-300 text-rose-800 focus:border-rose-500'
+                                    : estaAtribuidaUnica
                                       ? 'border-emerald-200 text-emerald-800 focus:border-emerald-500'
                                       : 'border-slate-200 text-slate-500 hover:border-slate-300'
-                                  }`}
+                                    }`}
                                 >
                                   <option value="livre">VAZIO</option>
                                   {usuarios.map(u => (
