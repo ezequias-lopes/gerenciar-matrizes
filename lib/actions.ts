@@ -43,7 +43,7 @@ export async function obterDadosIniciais() {
 
     return { usuarios, posicoes };
   } catch (error) {
-    console.error("Erro ao obter dados iniciais do MongoDB:", error);
+    console.error("Erro ao obter dados iniciais do banco:", error);
     throw new Error("Erro ao carregar dados do servidor.");
   }
 }
@@ -67,7 +67,7 @@ export async function adicionarUsuarioAction(nome: string): Promise<Usuario> {
       nome: novoUsuario.nome,
     };
   } catch (error) {
-    console.error("Erro ao adicionar utilizador no MongoDB:", error);
+    console.error("Erro ao adicionar utilizador no banco:", error);
     throw new Error("Não foi possível criar o utilizador.");
   }
 }
@@ -93,7 +93,7 @@ export async function removerUsuarioAction(id: string): Promise<boolean> {
     revalidatePath("/");
     return true;
   } catch (error) {
-    console.error("Erro ao remover utilizador no MongoDB:", error);
+    console.error("Erro ao remover utilizador no banco:", error);
     throw new Error("Falha ao eliminar o utilizador.");
   }
 }
@@ -116,7 +116,7 @@ export async function atualizarPosicaoAction(
     revalidatePath("/");
     return true;
   } catch (error) {
-    console.error(`Erro ao atualizar posição ${numero} no MongoDB:`, error);
+    console.error(`Erro ao atualizar posição ${numero} no banco:`, error);
     throw new Error("Erro ao salvar posição.");
   }
 }

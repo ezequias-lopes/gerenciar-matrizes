@@ -167,7 +167,7 @@ export default function App() {
         setPosicoes(novasPosicoes);
         salvarEmCacheLocal(novosUsuarios, novasPosicoes);
 
-        mostrarFeedback(`Usuário "${nome}" removido do banco MongoDB.`, 'info');
+        mostrarFeedback(`Usuário "${nome}" removido do banco.`, 'info');
       } catch (err) {
         mostrarFeedback('Erro ao sincronizar remoção no banco.', 'erro');
       }
@@ -189,7 +189,7 @@ export default function App() {
 
         setPosicoes(novasPosicoes);
         salvarEmCacheLocal(usuarios, novasPosicoes);
-        mostrarFeedback(`Posição ${numeroPosicao} atualizada no MongoDB.`, 'sucesso');
+        mostrarFeedback(`Posição ${numeroPosicao} atualizada no banco.`, 'sucesso');
       } catch (err) {
         mostrarFeedback('Erro ao atualizar posição no banco de dados.', 'erro');
       }
