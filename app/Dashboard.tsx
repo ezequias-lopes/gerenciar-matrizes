@@ -63,16 +63,16 @@ export default function App() {
         ];
 
         const posicoesPadrao: PosicaoMatriz[] = Array.from(
-          { length: 65 },
+          { length: 67 },
           (_, i) => {
             return (
               db.posicoes.find(p => p.numero === i) || {
-                numero: i,
+                numero: i + 1,
                 usuarioId: null
               }
             );
           }
-        );
+        ).filter(n => n.numero != 0);
 
         setUsuarios(ordenarUsuariosAlfabeticamente(usuariosPadrao));
         setPosicoes(posicoesPadrao);
@@ -374,7 +374,7 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
                 <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
                   <div>
                     <h2 className="text-base font-bold text-slate-900">Tabela de Matrizes</h2>
-                    <p className="text-xs text-slate-500 mt-0.5">Posições 0 — 64</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Posições 0 — 67</p>
                   </div>
 
                   {/* Badges de Contagem de Atribuições */}
