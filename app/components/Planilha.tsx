@@ -44,10 +44,11 @@ export default function PlanilhaAtribuicoes({ usuarios, posicoes, mostrarFeedbac
 
     // Filtro de pesquisa opcional por texto na planilha
     if (buscaPlanilha.trim()) {
-      const busca = buscaPlanilha.toLowerCase();
+      const busca = buscaPlanilha.toLowerCase().trim();
       return linhas.filter(l =>
         l.nome.toLowerCase().includes(busca) ||
-        l.posicao.toLowerCase().includes(busca)
+        l.posicao.toLowerCase().includes(busca) || 
+        l.setor.toLowerCase().includes(busca) 
       );
     }
 
