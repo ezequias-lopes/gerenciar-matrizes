@@ -142,7 +142,7 @@ export default function PlanilhaAtribuicoes({ usuarios, posicoes, mostrarFeedbac
 
       {/* Tabela do Tipo Planilha - 3 Colunas Exatas (Funcionário, Setor, Matriz) */}
       <div className="overflow-x-auto">
-        <div className="max-h-[350px] overflow-y-auto">
+        <div className="max-h-[650px] overflow-y-auto">
           <table className="w-full text-left border-collapse table-fixed">
             <thead>
               <tr className="bg-slate-100/85 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider sticky top-0 z-10">

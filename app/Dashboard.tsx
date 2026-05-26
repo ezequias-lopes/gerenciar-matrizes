@@ -35,7 +35,7 @@ export interface PosicaoMatriz {
 
 export default function App() {
   // Estado para controlar se a lista de usuários está aberta (fechada por padrão)
-  const [usuariosExpandido, setUsuariosExpandido] = useState(false);
+  const [usuariosExpandido, setUsuariosExpandido] = useState(true);
 
   // Controle de Transição do React para indicar carregamento das Server Actions
   const [isPending, startTransition] = useTransition();
@@ -305,7 +305,7 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
                   </form>
 
                   {/* Lista de Usuários cadastrados */}
-                  <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
+                  <div className="space-y-2 max-h-133 overflow-y-auto pr-1">
                     {usuarios.length === 0 ? (
                       <div className="text-center py-6 text-slate-400 text-xs border-2 border-dashed border-slate-100 rounded-xl">
                         Nenhum usuário cadastrado.
