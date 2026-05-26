@@ -24,11 +24,9 @@ export async function obterDadosIniciais() {
       orderBy: { numero: "asc" },
     });
 
+
     // Mapeia os dados obtidos do MongoDB para as interfaces do frontend
-    const usuarios: Usuario[] = usuariosDb.map((u: { id: string, nome: string }) => ({
-      id: u.id,
-      nome: u.nome,
-    }));
+    const usuarios: Usuario[] = usuariosDb
 
     // Garante que todas as 65 posições (0 a 64) estejam representadas
     const posicoesMap = new Map(posicoesDb.map((p: { numero: number, usuarioId: string | null }) => [p.numero, p.usuarioId]));

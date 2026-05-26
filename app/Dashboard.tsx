@@ -16,16 +16,19 @@ import {
 } from 'lucide-react';
 import { adicionarUsuarioAction, atualizarPosicaoAction, obterDadosIniciais, removerUsuarioAction } from '@/lib/actions';
 
+import PlanilhaAtribuicoes from './components/Planilha'
+
 // ==========================================
 // SEÇÃO DE SINALIZAÇÃO / DEFINIÇÕES DE TIPOS
 // ==========================================
 
-interface Usuario {
+export interface Usuario {
   id: string;
   nome: string;
+  setor?: string;
 }
 
-interface PosicaoMatriz {
+export interface PosicaoMatriz {
   numero: number;
   usuarioId: string | null;
 }
@@ -55,8 +58,6 @@ export default function App() {
     startTransition(async () => {
       try {
         const db = await obterDadosIniciais();
-
-        console.log(db);
 
         const usuariosPadrao = db.usuarios || [
           { id: '1', nome: 'Dados Não Carregados' },
@@ -563,6 +564,14 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
           </div>
 
         </div>
+
+        
+        {/* INSTÂNCIA DO COMPONENTE DE PLANILHA EXTRAÍDO */}
+        <PlanilhaAtribuicoes 
+          usuarios={usuarios} 
+          posicoes={posicoes} 
+          mostrarFeedback={mostrarFeedback} 
+        />
       </main>
     </div>
   );
