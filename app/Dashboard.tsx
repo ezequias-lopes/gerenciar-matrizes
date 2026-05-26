@@ -245,7 +245,7 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
       )}
 
       {/* Conteúdo Principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 mt-6 flex flex-col gap-5">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
 
           {/* COLUNA ESQUERDA: LISTA DE USUÁRIOS (FECHADA POR PADRÃO) */}
