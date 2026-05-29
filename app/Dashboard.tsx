@@ -12,7 +12,8 @@ import {
   ChevronUp,
   RefreshCw,
   Database,
-  Filter
+  Filter,
+  Search
 } from 'lucide-react';
 import { adicionarUsuarioAction, atualizarPosicaoAction, obterDadosIniciais, removerUsuarioAction } from '@/lib/actions';
 
@@ -47,6 +48,7 @@ export default function App() {
   const [mensagemFeedback, setMensagemFeedback] = useState<{ texto: string; tipo: 'sucesso' | 'erro' | 'info' } | null>(null);
 
   const [filtroUsuario, setFiltroUsuario] = useState<string>('todos');
+  const [filtroMatriz, setFiltroMatriz] = useState<string>('');
 
   // Helper de feedback temporário
   const mostrarFeedback = (texto: string, tipo: 'sucesso' | 'erro' | 'info') => {
@@ -156,13 +158,13 @@ export default function App() {
     });
   };
 
-const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
-  return [...lista].sort((a, b) =>
-    a.nome.localeCompare(b.nome, 'pt-BR', {
-      sensitivity: 'base'
-    })
-  );
-};
+  const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
+    return [...lista].sort((a, b) =>
+      a.nome.localeCompare(b.nome, 'pt-BR', {
+        sensitivity: 'base'
+      })
+    );
+  };
 
   // --- REGRAS DE NEGÓCIO E DETECÇÃO DE CONFLITO EM TEMPO REAL ---
 
@@ -191,17 +193,40 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
   const temAlgumConflito = totalConflitos > 0;
 
   const posicoesFiltradas = useMemo(() => {
-    return posicoes.filter(pos => {
+    let filtered = posicoes.filter(pos => {
+
       if (filtroUsuario === 'todos') {
         return true;
       }
+
+      if (filtroUsuario === 'conflitos') {
+        return usuariosEmConflito.has(pos.usuarioId || '')
+      }
+
       if (filtroUsuario === 'livres') {
         return pos.usuarioId === null;
       }
-      // Filtra pelo id específico do usuário
+
       return pos.usuarioId === filtroUsuario;
     });
-  }, [posicoes, filtroUsuario]);
+
+    filtered = filtered.filter(pos => {
+      let currentUser = usuarios.find(u => u.id === pos.usuarioId);
+
+      if (!filtroMatriz.trim()) return true;
+
+      const posicao = Number(filtroMatriz.trim()) > 0 ? `${pos.numero}`.padStart(2, '0') : `${pos.numero}`;
+
+      if (currentUser) {
+        return currentUser.nome.toUpperCase().includes(filtroMatriz.trim().toUpperCase()) || 
+          posicao.includes(filtroMatriz.trim());
+      }
+
+      return posicao.includes(filtroMatriz.trim());
+    })
+
+    return filtered;
+  }, [posicoes, filtroUsuario, filtroMatriz]);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased pb-12">
@@ -403,56 +428,92 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
                     <Filter className="w-4 h-4 text-slate-400" />
                     <span>Filtrar tabela:</span>
                   </div>
-                  <div className="flex flex-wrap gap-2 w-full">
-                    {/* Botão para Todos */}
-                    <button
-                      onClick={() => setFiltroUsuario('todos')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'todos'
-                        ? 'bg-blue-600 border-blue-600 text-white'
-                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                    >
-                      Todos ({posicoes.length})
-                    </button>
-
-                    {/* Botão para Livres */}
-                    <button
-                      onClick={() => setFiltroUsuario('livres')}
-                      className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'livres'
-                        ? 'bg-slate-700 border-slate-700 text-white'
-                        : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
-                        }`}
-                    >
-                      Livres ({totalLivres})
-                    </button>
-
-                    {/* Dropdown de Filtragem por Usuário Específico */}
-                    <div className="relative">
-                      <select
-                        value={['todos', 'livres'].includes(filtroUsuario) ? 'selecionar' : filtroUsuario}
-                        onChange={(e) => {
-                          if (e.target.value !== 'selecionar') {
-                            setFiltroUsuario(e.target.value);
-                          }
-                        }}
-                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${!['todos', 'livres'].includes(filtroUsuario)
-                          ? 'border-blue-600 text-blue-700 font-bold'
-                          : 'border-slate-200 text-slate-600 hover:border-slate-300'
-                          }`}
-                      >
-                        <option value="selecionar" disabled>Filtrar por Usuário...</option>
-                        {usuarios.map(u => (
-                          <option key={u.id} value={u.id}>
-                            {u.nome} ({contagemPorUsuario[u.id] || 0})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Botão para limpar filtro rápido quando um usuário está selecionado */}
-                    {!['todos', 'livres'].includes(filtroUsuario) && (
+                  <div className='flex flex-col gap-2'>
+                    <div className="flex flex-wrap gap-2 w-full">
+                      {/* Botão para Todos */}
                       <button
                         onClick={() => setFiltroUsuario('todos')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'todos'
+                          ? 'bg-blue-600 border-blue-600 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          }`}
+                      >
+                        Todos ({posicoes.length})
+                      </button>
+
+                      {/* Botão para Livres */}
+                      <button
+                        onClick={() => setFiltroUsuario('livres')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'livres'
+                          ? 'bg-slate-700 border-slate-700 text-white'
+                          : 'bg-white border-slate-200 text-slate-600 hover:border-slate-300'
+                          }`}
+                      >
+                        Livres ({totalLivres})
+                      </button>
+
+                      <button
+                        onClick={() => setFiltroUsuario('conflitos')}
+                        className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all ${filtroUsuario === 'conflitos'
+                          ? 'bg-slate-700 border-slate-700 text-white'
+                          : 'bg-white border-red-300 text-red-500 hover:border-red-500'
+                          }`}
+                      >
+                        Conflitos ({totalConflitos})
+                      </button>
+
+                      
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto">
+                        {/* Barra de Pesquisa Rápida na Planilha */}
+                        <div className="relative flex-1 sm:w-60">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            placeholder="Buscar por usuário ou matriz..."
+                            value={filtroMatriz}
+                            onChange={(e) => setFiltroMatriz(e.target.value)}
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs focus:outline-hidden"
+                          />
+                          {filtroMatriz && (
+                            <button
+                              onClick={() => setFiltroMatriz('')}
+                              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5 rounded-md hover:bg-slate-100"
+                            >
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className='flex gap-2'>
+                      {/* Dropdown de Filtragem por Usuário Específico */}
+                      <div className="relative">
+                        <select
+                          value={['todos', 'livres', 'conflitos'].includes(filtroUsuario) ? 'selecionar' : filtroUsuario}
+                          onChange={(e) => {
+                            if (e.target.value !== 'selecionar') {
+                              setFiltroUsuario(e.target.value);
+                            }
+                          }}
+                          className={`px-3 py-1.5 max-w-[300px] text-xs font-semibold rounded-lg border bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${!['todos', 'livres', 'conflitos'].includes(filtroUsuario)
+                            ? 'border-blue-600 text-blue-700 font-bold'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                        >
+                          <option value="selecionar" disabled>Filtrar por Usuário...</option>
+                          {usuarios.map(u => (
+                            <option key={u.id} value={u.id}>
+                              {u.nome} ({contagemPorUsuario[u.id] || 0})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                    </div>
+                    {/* Botão para limpar filtro rápido quando um usuário está selecionado */}
+                    {!['todos', 'livres', 'conflitos'].includes(filtroUsuario) || filtroMatriz && (
+                      <button
+                        onClick={() => { setFiltroUsuario('todos'); setFiltroMatriz('') }}
                         className="p-1.5 text-xs rounded-lg hover:bg-slate-100 text-rose-500 font-semibold flex items-center gap-1 transition-colors"
                         title="Limpar filtro de usuário"
                       >
@@ -565,12 +626,12 @@ const ordenarUsuariosAlfabeticamente = (lista: Usuario[]) => {
 
         </div>
 
-        
+
         {/* INSTÂNCIA DO COMPONENTE DE PLANILHA EXTRAÍDO */}
-        <PlanilhaAtribuicoes 
-          usuarios={usuarios} 
-          posicoes={posicoes} 
-          mostrarFeedback={mostrarFeedback} 
+        <PlanilhaAtribuicoes
+          usuarios={usuarios}
+          posicoes={posicoes}
+          mostrarFeedback={mostrarFeedback}
         />
       </main>
     </div>
