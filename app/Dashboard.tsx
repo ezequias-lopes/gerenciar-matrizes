@@ -49,6 +49,7 @@ export default function App() {
 
   const [filtroUsuario, setFiltroUsuario] = useState<string>('todos');
   const [filtroMatriz, setFiltroMatriz] = useState<string>('');
+  const [filtroSetor, setFiltroSetor] = useState<string>('');
 
   // Helper de feedback temporário
   const mostrarFeedback = (texto: string, tipo: 'sucesso' | 'erro' | 'info') => {
@@ -192,6 +193,8 @@ export default function App() {
   const totalConflitos = Array.from(usuariosEmConflito).length;
   const temAlgumConflito = totalConflitos > 0;
 
+  const setores = Array.from(new Set(usuarios.map(u => u.setor))
+)
   const posicoesFiltradas = useMemo(() => {
     let filtered = posicoes.filter(pos => {
 
@@ -225,8 +228,18 @@ export default function App() {
       return posicao.includes(filtroMatriz.trim());
     })
 
+     filtered = filtered.filter(pos => {
+        let currentUser = usuarios.find(u => u.id === pos.usuarioId);
+
+        if (!filtroSetor.trim()) return true;
+
+        if (currentUser) {
+          return currentUser.setor === filtroSetor;
+        }
+      })
+
     return filtered;
-  }, [posicoes, filtroUsuario, filtroMatriz]);
+  }, [posicoes, filtroUsuario, filtroMatriz, filtroSetor]);
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans antialiased pb-12">
@@ -500,7 +513,7 @@ export default function App() {
                             : 'border-slate-200 text-slate-600 hover:border-slate-300'
                             }`}
                         >
-                          <option value="selecionar" disabled>Filtrar por Usuário...</option>
+                          <option value="selecionar">Filtrar por Usuário...</option>
                           {usuarios.map(u => (
                             <option key={u.id} value={u.id}>
                               {u.nome} ({contagemPorUsuario[u.id] || 0})
@@ -508,12 +521,32 @@ export default function App() {
                           ))}
                         </select>
                       </div>
-
+<div className="relative">
+                        <select
+                          value={!filtroSetor ? 'selecionar' : filtroSetor}
+                          onChange={(e) => {
+                            if (e.target.value !== 'selecionar') {
+                              setFiltroSetor(e.target.value);
+                            }
+                          }}
+                          className={`px-3 py-1.5 max-w-[300px] text-xs font-semibold rounded-lg border bg-white focus:outline-hidden focus:ring-2 focus:ring-blue-500/20 transition-all ${!['todos', 'livres', 'conflitos'].includes(filtroUsuario)
+                            ? 'border-blue-600 text-blue-700 font-bold'
+                            : 'border-slate-200 text-slate-600 hover:border-slate-300'
+                            }`}
+                        >
+                          <option value="selecionar">Filtrar por Setor...</option>
+                          {setores.map(s => (
+                            <option key={s} value={s}>
+                              {s} ({usuarios.filter(u => u.setor === s).length || 0})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
                     {/* Botão para limpar filtro rápido quando um usuário está selecionado */}
-                    {!['todos', 'livres', 'conflitos'].includes(filtroUsuario) || filtroMatriz && (
+                    {!['todos', 'livres', 'conflitos'].includes(filtroUsuario) || filtroMatriz || filtroSetor && (
                       <button
-                        onClick={() => { setFiltroUsuario('todos'); setFiltroMatriz('') }}
+                        onClick={() => { setFiltroUsuario('todos'); setFiltroMatriz(''); setFiltroSetor('') }}
                         className="p-1.5 text-xs rounded-lg hover:bg-slate-100 text-rose-500 font-semibold flex items-center gap-1 transition-colors"
                         title="Limpar filtro de usuário"
                       >
@@ -584,7 +617,7 @@ export default function App() {
                                 >
                                   <option value="livre">VAZIO</option>
                                   {usuarios.map(u => (
-                                    <option key={u.id} value={u.id}>{u.nome}</option>
+                                    <option key={u.id} value={u.id}>{u.nome} ({u.setor || 'Setor não definido'})</option>
                                   ))}
                                 </select>
                               </td>
