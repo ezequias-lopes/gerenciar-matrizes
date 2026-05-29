@@ -64,7 +64,7 @@ export default function App() {
         ];
 
         const posicoesPadrao: PosicaoMatriz[] = Array.from(
-          { length: 67 },
+          { length: 68 },
           (_, i) => {
             return (
               db.posicoes.find(p => p.numero === i) || {

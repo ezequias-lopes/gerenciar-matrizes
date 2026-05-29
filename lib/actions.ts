@@ -32,7 +32,7 @@ export async function obterDadosIniciais() {
     const posicoesMap = new Map(posicoesDb.map((p: { numero: number, usuarioId: string | null }) => [p.numero, p.usuarioId]));
     const posicoes: PosicaoMatriz[] = [];
 
-    for (let i = 0; i <= 64; i++) {
+    for (let i = 0; i <= 68; i++) {
       posicoes.push({
         numero: i,
         usuarioId: posicoesMap.get(i) as string || null,
